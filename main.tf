@@ -62,6 +62,7 @@ data "aws_iam_policy_document" "task_execution_permissions" {
 
 # Add permissions for the secrets manager if they are provided
 data "aws_iam_policy_document" "task_execution_secrets_manager_permissions" {
+  count = var.datadog_api_key_secrets_manager_arn != null ? 1 : 0
   statement {
     effect = "Allow"
 
@@ -84,6 +85,7 @@ resource "aws_iam_role_policy" "task_execution_secrets_manager" {
 
 # Add permissions for the KMS key if it is provided
 data "aws_iam_policy_document" "task_execution_kms_permissions" {
+  count = var.datadog_api_key_kms_arn != null ? 1 : 0
   statement {
     effect = "Allow"
 
