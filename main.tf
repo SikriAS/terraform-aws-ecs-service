@@ -58,7 +58,10 @@ data "aws_iam_policy_document" "task_execution_permissions" {
       "logs:PutLogEvents",
     ]
   }
+}
 
+# Add permissions for the secrets manager if they are provided
+data "aws_iam_policy_document" "task_execution_secrets_manager_permissions" {
   statement {
     effect = "Allow"
 
@@ -67,10 +70,20 @@ data "aws_iam_policy_document" "task_execution_permissions" {
     ]
 
     resources = [
-      local.datadog_api_key_secret
+      var.datadog_api_key_secrets_manager_arn
     ]
   }
+}
 
+resource "aws_iam_role_policy" "task_execution_secrets_manager" {
+  count = var.datadog_api_key_secrets_manager_arn != null ? 1 : 0
+  name   = "${var.application_name}-task-execution"
+  role   = aws_iam_role.execution.id
+  policy = data.aws_iam_policy_document.task_execution_secrets_manager_permissions.json
+}
+
+# Add permissions for the KMS key if it is provided
+data "aws_iam_policy_document" "task_execution_kms_permissions" {
   statement {
     effect = "Allow"
 
@@ -79,9 +92,16 @@ data "aws_iam_policy_document" "task_execution_permissions" {
     ]
 
     resources = [
-      local.datadog_api_key_kms
+      var.datadog_api_key_kms_arn
     ]
   }
+}
+
+resource "aws_iam_role_policy" "task_execution_kms" {
+  count = var.datadog_api_key_kms_arn != null ? 1 : 0
+  name   = "${var.application_name}-task-execution"
+  role   = aws_iam_role.execution.id
+  policy = data.aws_iam_policy_document.task_execution_kms_permissions.json
 }
 
 /*
@@ -117,7 +137,6 @@ data "aws_iam_policy_document" "ecs_task_logs" {
 
 resource "aws_iam_role_policy" "xray_daemon" {
   count = var.xray_daemon ? 1 : 0
-
   role   = aws_iam_role.task.id
   policy = data.aws_iam_policy_document.xray_daemon.json
 }
@@ -348,18 +367,11 @@ resource "aws_lb_listener_rule" "service" {
   }
 }
 
-module "account_metadata" {
-  source = "github.com/nsbno/terraform-aws-account-metadata?ref=0.1.1"
-}
-
 /*
  * = ECS Service
  *
  * This is what users are here for
  */
-data "aws_secretsmanager_secret" "datadog_agent_api_key" {
-  arn = "arn:aws:secretsmanager:eu-west-1:727646359971:secret:datadog_agent_api_key"
-}
 
 locals {
   xray_container = var.xray_daemon == true ? [
@@ -371,9 +383,6 @@ locals {
     }
   ] : []
 
-  datadog_api_key_secret = data.aws_secretsmanager_secret.datadog_agent_api_key.arn
-  datadog_api_key_kms    = "arn:aws:kms:eu-west-1:727646359971:key/1bfdf87f-a69c-41f8-929a-2a491fc64f69"
-
   datadog_containers = var.datadog == true ? [
     {
       name      = "datadog-agent",
@@ -383,12 +392,12 @@ locals {
       environment = {
         ECS_FARGATE = "true"
 
-        DD_SITE = "datadoghq.eu"
+        DD_SITE = var.datadog_site
 
         DD_SERVICE = var.application_name
-        DD_ENV     = module.account_metadata.account.environment
+        DD_ENV     = var.environment
         DD_VERSION = split(":", var.application_container.image)[1]
-        DD_TAGS    = "team:personnel"
+        DD_TAGS    = "team:${var.team_tag}"
 
         DD_APM_ENABLED = "true"
         DD_APM_FILTER_TAGS_REJECT = "http.useragent:ELB-HealthChecker/2.0 user_agent:ELB-HealthChecker/2.0"
@@ -398,7 +407,7 @@ locals {
         DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED = "true"
       },
       secrets = {
-        DD_API_KEY = local.datadog_api_key_secret
+        DD_API_KEY = var.datadog_api_key_secrets_manager_arn
       }
     },
     {
@@ -429,7 +438,7 @@ module "autoinstrumentation_setup" {
   datadog_instrumentation_language = var.datadog_instrumentation_language
 
   dd_service = var.application_name
-  dd_env     = module.account_metadata.account.environment
+  dd_env     =var.environment
   dd_version = split(":", var.application_container.image)[1]
 }
 
@@ -566,17 +575,17 @@ resource "aws_ecs_task_definition" "task_datadog" {
         logDriver = "awsfirelens",
         options = {
           Name       = "datadog",
-          Host       = "http-intake.logs.datadoghq.eu",
+          Host       = "http-intake.logs.${var.datadog_site}",
           compress   = "gzip",
           TLS        = "on"
           provider   = "ecs"
           dd_service = var.application_name,
-          dd_tags    = "env:${module.account_metadata.account.environment},version:${split(":", var.application_container.image)[1]},team:personnel",
+          dd_tags    = "env:${var.environment},version:${split(":", var.application_container.image)[1]},team:${var.team_tag}",
         }
         secretOptions = [
           {
             name      = "apiKey",
-            valueFrom = local.datadog_api_key_secret
+            valueFrom = var.datadog_api_key_secrets_manager_arn
           }
         ]
       }
@@ -587,9 +596,9 @@ resource "aws_ecs_task_definition" "task_datadog" {
       memoryReservation = container.memory_soft_limit
       dockerLabels = {
         "com.datadoghq.tags.service" = var.application_name
-        "com.datadoghq.tags.env" = module.account_metadata.account.environment
+        "com.datadoghq.tags.env" = var.environment
         "com.datadoghq.tags.version" = split(":", var.application_container.image)[1]
-        "com.datadoghq.tags.team" = "personnel"
+        "com.datadoghq.tags.team" = var.team_tag
       }
     }, container.extra_options)
   ])

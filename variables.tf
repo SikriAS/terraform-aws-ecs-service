@@ -268,6 +268,24 @@ variable "datadog" {
   default     = false
 }
 
+variable "datadog_api_key_secrets_manager_arn" {
+  description = "The ARN of the Secrets Manager secret containing the Datadog API key."
+  type        = string
+  default     = null
+}
+
+variable "datadog_api_key_kms_arn" {
+  description = "The ARN of the KMS key ID to use for encrypting the Datadog API key."
+  type        = string
+  default     = null
+}
+
+variable "datadog_site" {
+  description = "The Datadog site to send data to."
+  type        = string
+  default     = "datadoghq.eu"
+}
+
 variable "datadog_instrumentation_language" {
   description = "Should we autoinstrument the service?"
   type        = string
@@ -322,4 +340,15 @@ variable "lb_stickiness" {
     enabled         = false
     cookie_duration = 86400 # 24h in seconds
   }
+}
+
+variable "environment" {
+  description = "The environment the service is running in"
+  type        = string
+  default     = null
+}
+
+variable "team_tag" {
+  description = "The team tag for the service"
+  type        = string
 }
