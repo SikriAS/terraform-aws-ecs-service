@@ -80,7 +80,7 @@ resource "aws_iam_role_policy" "task_execution_secrets_manager" {
   count = var.datadog_api_key_secrets_manager_arn != null ? 1 : 0
   name   = "${var.application_name}-task-execution"
   role   = aws_iam_role.execution.id
-  policy = data.aws_iam_policy_document.task_execution_secrets_manager_permissions.json
+  policy = data.aws_iam_policy_document.task_execution_secrets_manager_permissions[0].json
 }
 
 # Add permissions for the KMS key if it is provided
@@ -103,7 +103,7 @@ resource "aws_iam_role_policy" "task_execution_kms" {
   count = var.datadog_api_key_kms_arn != null ? 1 : 0
   name   = "${var.application_name}-task-execution"
   role   = aws_iam_role.execution.id
-  policy = data.aws_iam_policy_document.task_execution_kms_permissions.json
+  policy = data.aws_iam_policy_document.task_execution_kms_permissions[0].json
 }
 
 /*
