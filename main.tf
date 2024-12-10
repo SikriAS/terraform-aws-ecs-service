@@ -36,7 +36,7 @@ resource "aws_iam_role" "execution" {
 }
 
 resource "aws_iam_role_policy" "task_execution" {
-  name   = "${var.application_name}-task-execution"
+  name   = "${var.application_name}-task-execution-general-permissions"
   role   = aws_iam_role.execution.id
   policy = data.aws_iam_policy_document.task_execution_permissions.json
 }
@@ -78,7 +78,7 @@ data "aws_iam_policy_document" "task_execution_secrets_manager_permissions" {
 
 resource "aws_iam_role_policy" "task_execution_secrets_manager" {
   count = var.datadog_api_key_secrets_manager_arn != null ? 1 : 0
-  name   = "${var.application_name}-task-execution"
+  name   = "${var.application_name}-task-execution-secrets-manager-permissios"
   role   = aws_iam_role.execution.id
   policy = data.aws_iam_policy_document.task_execution_secrets_manager_permissions[0].json
 }
@@ -101,7 +101,7 @@ data "aws_iam_policy_document" "task_execution_kms_permissions" {
 
 resource "aws_iam_role_policy" "task_execution_kms" {
   count = var.datadog_api_key_kms_arn != null ? 1 : 0
-  name   = "${var.application_name}-task-execution"
+  name   = "${var.application_name}-task-execution-kms-permissions"
   role   = aws_iam_role.execution.id
   policy = data.aws_iam_policy_document.task_execution_kms_permissions[0].json
 }
