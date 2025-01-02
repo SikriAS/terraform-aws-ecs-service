@@ -16,13 +16,13 @@ variable "cluster_id" {
 
 variable "application_container" {
   description = "The application that is being run by the service"
-  type = any
+  type        = any
 }
 
 variable "sidecar_containers" {
   description = "Sidecars for the main application"
-  type = any
-  default = []
+  type        = any
+  default     = []
 }
 
 variable "launch_type" {
