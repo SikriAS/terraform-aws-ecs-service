@@ -16,52 +16,12 @@ variable "cluster_id" {
 
 variable "application_container" {
   description = "The application that is being run by the service"
-  type        = object({
-    name  = string
-    image = string
-    essential = optional(bool, true)
-    command = optional(string)
-
-    environment = optional(map(string), {})
-    secrets = optional(map(string), {})
-
-    cpu = optional(number)
-    memory_hard_limit = optional(number)
-    memory_soft_limit = optional(number)
-
-    port              = number
-    protocol          = string,
-    network_protocol  = optional(string, "tcp")
-
-    health_check = optional(any)
-
-    extra_options = optional(any)
-  })
+  type        = any
 }
 
 variable "sidecar_containers" {
   description = "Sidecars for the main application"
-  type        = list(object({
-      name  = string
-      image = string
-      essential = optional(bool, true)
-      command = optional(string)
-
-      environment = optional(map(string))
-      secrets = optional(map(string))
-
-      cpu = optional(number)
-      memory_hard_limit = optional(number)
-      memory_soft_limit = optional(number)
-
-      port              = optional(number)
-      protocol          = optional(string)
-      network_protocol  = optional(string, "tcp")
-
-      health_check = optional(any)
-
-      extra_options = optional(any)
-  }))
+  type        = any
   default     = []
 }
 
@@ -271,36 +231,6 @@ variable "wait_for_steady_state" {
   default     = false
 }
 
-variable "datadog" {
-  description = "Should a Datadog agent be attached to the service?"
-  type        = bool
-  default     = false
-}
-
-variable "datadog_api_key_secrets_manager_arn" {
-  description = "The ARN of the Secrets Manager secret containing the Datadog API key."
-  type        = string
-  default     = null
-}
-
-variable "datadog_api_key_kms_arn" {
-  description = "The ARN of the KMS key ID to use for encrypting the Datadog API key."
-  type        = string
-  default     = null
-}
-
-variable "datadog_site" {
-  description = "The Datadog site to send data to."
-  type        = string
-  default     = "datadoghq.eu"
-}
-
-variable "datadog_instrumentation_language" {
-  description = "Should we autoinstrument the service?"
-  type        = string
-  default     = null
-}
-
 variable "xray_daemon" {
   description = "Should a OpenTelemetry Collector for X-Ray be attached to the service?"
   type        = bool
@@ -349,15 +279,4 @@ variable "lb_stickiness" {
     enabled         = false
     cookie_duration = 86400 # 24h in seconds
   }
-}
-
-variable "environment" {
-  description = "The environment the service is running in"
-  type        = string
-  default     = null
-}
-
-variable "team_tag" {
-  description = "The team tag for the service"
-  type        = string
 }
